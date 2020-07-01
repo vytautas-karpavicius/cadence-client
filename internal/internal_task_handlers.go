@@ -1497,6 +1497,7 @@ func (wth *workflowTaskHandlerImpl) completeWorkflow(
 			Header:                              contErr.params.header,
 			Memo:                                workflowContext.workflowInfo.Memo,
 			SearchAttributes:                    workflowContext.workflowInfo.SearchAttributes,
+			RetryPolicy:                         contErr.params.retryPolicy,
 		}
 	} else if workflowContext.err != nil {
 		// Workflow failures
