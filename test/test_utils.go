@@ -27,11 +27,11 @@ import (
 	"os"
 	"strings"
 
+	apiv1 "go.uber.org/cadence/v2/.gen/proto/api/v1"
+	"go.uber.org/cadence/v2/internal/api"
+	"go.uber.org/cadence/v2/workflow"
 	"go.uber.org/yarpc"
-	"go.uber.org/yarpc/transport/tchannel"
-
-	"go.uber.org/cadence/v1/.gen/go/cadence/workflowserviceclient"
-	"go.uber.org/cadence/v1/workflow"
+	"go.uber.org/yarpc/transport/grpc"
 )
 
 type (
@@ -50,7 +50,7 @@ type (
 func newConfig() Config {
 	cfg := Config{
 		ServiceName: "cadence-frontend",
-		ServiceAddr: "127.0.0.1:7933",
+		ServiceAddr: "127.0.0.1:7833",
 		IsStickyOff: true,
 	}
 	if name := getEnvServiceName(); name != "" {
@@ -84,8 +84,15 @@ func getDebug() string {
 	return strings.ToLower(strings.TrimSpace(os.Getenv("DEBUG")))
 }
 
+type cadenceAPI struct {
+	apiv1.DomainAPIYARPCClient
+	apiv1.WorkflowAPIYARPCClient
+	apiv1.VisibilityAPIYARPCClient
+	apiv1.WorkerAPIYARPCClient
+}
+
 type rpcClient struct {
-	workflowserviceclient.Interface
+	api.Interface
 	dispatcher *yarpc.Dispatcher
 }
 
@@ -97,10 +104,7 @@ func (c *rpcClient) Close() {
 // make calls to the localhost cadence-server container
 func newRPCClient(
 	serviceName string, serviceAddr string) (*rpcClient, error) {
-	transport, err := tchannel.NewTransport(tchannel.ServiceName("integration-test"))
-	if err != nil {
-		return nil, err
-	}
+	transport := grpc.NewTransport()
 	outbound := transport.NewSingleOutbound(serviceAddr)
 	dispatcher := yarpc.NewDispatcher(yarpc.Config{
 		Name: "integration-test",
@@ -113,8 +117,14 @@ func newRPCClient(
 	if err := dispatcher.Start(); err != nil {
 		return nil, err
 	}
-	client := workflowserviceclient.New(dispatcher.ClientConfig(serviceName))
-	return &rpcClient{Interface: client, dispatcher: dispatcher}, nil
+	clientConfig := dispatcher.ClientConfig(serviceName)
+	service := cadenceAPI{
+		DomainAPIYARPCClient:     apiv1.NewDomainAPIYARPCClient(clientConfig),
+		VisibilityAPIYARPCClient: apiv1.NewVisibilityAPIYARPCClient(clientConfig),
+		WorkflowAPIYARPCClient:   apiv1.NewWorkflowAPIYARPCClient(clientConfig),
+		WorkerAPIYARPCClient:     apiv1.NewWorkerAPIYARPCClient(clientConfig),
+	}
+	return &rpcClient{Interface: service, dispatcher: dispatcher}, nil
 }
 
 // stringMapPropagator propagates the list of keys across a workflow,

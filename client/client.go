@@ -26,11 +26,11 @@ package client
 import (
 	"context"
 
-	"go.uber.org/cadence/v1/.gen/go/cadence/workflowserviceclient"
-	s "go.uber.org/cadence/v1/.gen/go/shared"
-	"go.uber.org/cadence/v1/encoded"
-	"go.uber.org/cadence/v1/internal"
-	"go.uber.org/cadence/v1/workflow"
+	apiv1 "go.uber.org/cadence/v2/.gen/proto/api/v1"
+	"go.uber.org/cadence/v2/encoded"
+	"go.uber.org/cadence/v2/internal"
+	"go.uber.org/cadence/v2/internal/api"
+	"go.uber.org/cadence/v2/workflow"
 )
 
 const (
@@ -187,7 +187,7 @@ type (
 		//			}
 		//			events = append(events, event)
 		//		}
-		GetWorkflowHistory(ctx context.Context, workflowID string, runID string, isLongPoll bool, filterType s.HistoryEventFilterType) HistoryEventIterator
+		GetWorkflowHistory(ctx context.Context, workflowID string, runID string, isLongPoll bool, filterType apiv1.EventFilterType) HistoryEventIterator
 
 		// CompleteActivity reports activity completed.
 		// activity Execute method can return activity.ErrResultPending to
@@ -243,7 +243,7 @@ type (
 		//  - BadRequestError
 		//  - InternalServiceError
 		//  - EntityNotExistError
-		ListClosedWorkflow(ctx context.Context, request *s.ListClosedWorkflowExecutionsRequest) (*s.ListClosedWorkflowExecutionsResponse, error)
+		ListClosedWorkflow(ctx context.Context, request *apiv1.ListClosedWorkflowExecutionsRequest) (*apiv1.ListClosedWorkflowExecutionsResponse, error)
 
 		// ListOpenWorkflow gets open workflow executions based on request filters.
 		// Retrieved workflow executions are sorted by start time in descending order.
@@ -252,7 +252,7 @@ type (
 		//  - BadRequestError
 		//  - InternalServiceError
 		//  - EntityNotExistError
-		ListOpenWorkflow(ctx context.Context, request *s.ListOpenWorkflowExecutionsRequest) (*s.ListOpenWorkflowExecutionsResponse, error)
+		ListOpenWorkflow(ctx context.Context, request *apiv1.ListOpenWorkflowExecutionsRequest) (*apiv1.ListOpenWorkflowExecutionsResponse, error)
 
 		// ListWorkflow gets workflow executions based on query. This API only works with ElasticSearch,
 		// and will return BadRequestError when using Cassandra or MySQL. The query is basically the SQL WHERE clause,
@@ -265,7 +265,7 @@ type (
 		// The errors it can return:
 		//  - BadRequestError
 		//  - InternalServiceError
-		ListWorkflow(ctx context.Context, request *s.ListWorkflowExecutionsRequest) (*s.ListWorkflowExecutionsResponse, error)
+		ListWorkflow(ctx context.Context, request *apiv1.ListWorkflowExecutionsRequest) (*apiv1.ListWorkflowExecutionsResponse, error)
 
 		// ListArchivedWorkflow gets archived workflow executions based on query. This API will return BadRequest if Cadence
 		// cluster or target domain is not configured for visibility archival or read is not enabled. The query is basically the SQL WHERE clause.
@@ -274,7 +274,7 @@ type (
 		// The errors it can return:
 		//  - BadRequestError
 		//  - InternalServiceError
-		ListArchivedWorkflow(ctx context.Context, request *s.ListArchivedWorkflowExecutionsRequest) (*s.ListArchivedWorkflowExecutionsResponse, error)
+		ListArchivedWorkflow(ctx context.Context, request *apiv1.ListArchivedWorkflowExecutionsRequest) (*apiv1.ListArchivedWorkflowExecutionsResponse, error)
 
 		// ScanWorkflow gets workflow executions based on query. This API only works with ElasticSearch,
 		// and will return BadRequestError when using Cassandra or MySQL. The query is basically the SQL WHERE clause
@@ -285,7 +285,7 @@ type (
 		// The errors it can return:
 		//  - BadRequestError
 		//  - InternalServiceError
-		ScanWorkflow(ctx context.Context, request *s.ListWorkflowExecutionsRequest) (*s.ListWorkflowExecutionsResponse, error)
+		ScanWorkflow(ctx context.Context, request *apiv1.ScanWorkflowExecutionsRequest) (*apiv1.ScanWorkflowExecutionsResponse, error)
 
 		// CountWorkflow gets number of workflow executions based on query. This API only works with ElasticSearch,
 		// and will return BadRequestError when using Cassandra or MySQL. The query is basically the SQL WHERE clause
@@ -293,12 +293,12 @@ type (
 		// The errors it can return:
 		//  - BadRequestError
 		//  - InternalServiceError
-		CountWorkflow(ctx context.Context, request *s.CountWorkflowExecutionsRequest) (*s.CountWorkflowExecutionsResponse, error)
+		CountWorkflow(ctx context.Context, request *apiv1.CountWorkflowExecutionsRequest) (*apiv1.CountWorkflowExecutionsResponse, error)
 
 		// GetSearchAttributes returns valid search attributes keys and value types.
 		// The search attributes can be used in query of List/Scan/Count APIs. Adding new search attributes requires cadence server
 		// to update dynamic config ValidSearchAttributes.
-		GetSearchAttributes(ctx context.Context) (*s.GetSearchAttributesResponse, error)
+		GetSearchAttributes(ctx context.Context) (*apiv1.GetSearchAttributesResponse, error)
 
 		// QueryWorkflow queries a given workflow's last execution and returns the query result synchronously. Parameter workflowID
 		// and queryType are required, other parameters are optional. The workflowID and runID (optional) identify the
@@ -335,7 +335,7 @@ type (
 		//  - BadRequestError
 		//  - InternalServiceError
 		//  - EntityNotExistError
-		ResetWorkflow(ctx context.Context, request *s.ResetWorkflowExecutionRequest) (*s.ResetWorkflowExecutionResponse, error)
+		ResetWorkflow(ctx context.Context, request *apiv1.ResetWorkflowExecutionRequest) (*apiv1.ResetWorkflowExecutionResponse, error)
 
 		// DescribeWorkflowExecution returns information about the specified workflow execution.
 		// - runID can be default(empty string). if empty string then it will pick the last running execution of that workflow ID.
@@ -344,7 +344,7 @@ type (
 		//  - BadRequestError
 		//  - InternalServiceError
 		//  - EntityNotExistError
-		DescribeWorkflowExecution(ctx context.Context, workflowID, runID string) (*s.DescribeWorkflowExecutionResponse, error)
+		DescribeWorkflowExecution(ctx context.Context, workflowID, runID string) (*apiv1.DescribeWorkflowExecutionResponse, error)
 
 		// DescribeTaskList returns information about the target tasklist, right now this API returns the
 		// pollers which polled this tasklist in last few minutes.
@@ -352,7 +352,7 @@ type (
 		//  - BadRequestError
 		//  - InternalServiceError
 		//  - EntityNotExistError
-		DescribeTaskList(ctx context.Context, tasklist string, tasklistType s.TaskListType) (*s.DescribeTaskListResponse, error)
+		DescribeTaskList(ctx context.Context, tasklist string, tasklistType apiv1.TaskListType) (*apiv1.DescribeTaskListResponse, error)
 	}
 
 	// DomainClient is the client for managing operations on the domain.
@@ -363,7 +363,7 @@ type (
 		//	- DomainAlreadyExistsError
 		//	- BadRequestError
 		//	- InternalServiceError
-		Register(ctx context.Context, request *s.RegisterDomainRequest) error
+		Register(ctx context.Context, request *apiv1.RegisterDomainRequest) error
 
 		// Describe a domain. The domain has 3 part of information
 		// DomainInfo - Which has Name, Status, Description, Owner Email
@@ -373,14 +373,14 @@ type (
 		//	- EntityNotExistsError
 		//	- BadRequestError
 		//	- InternalServiceError
-		Describe(ctx context.Context, name string) (*s.DescribeDomainResponse, error)
+		Describe(ctx context.Context, name string) (*apiv1.DescribeDomainResponse, error)
 
 		// Update a domain.
 		// The errors it can throw:
 		//	- EntityNotExistsError
 		//	- BadRequestError
 		//	- InternalServiceError
-		Update(ctx context.Context, request *s.UpdateDomainRequest) error
+		Update(ctx context.Context, request *apiv1.UpdateDomainRequest) error
 	}
 )
 
@@ -412,12 +412,12 @@ const (
 )
 
 // NewClient creates an instance of a workflow client
-func NewClient(service workflowserviceclient.Interface, domain string, options *Options) Client {
+func NewClient(service api.Interface, domain string, options *Options) Client {
 	return internal.NewClient(service, domain, options)
 }
 
 // NewDomainClient creates an instance of a domain client, to manage lifecycle of domains.
-func NewDomainClient(service workflowserviceclient.Interface, options *Options) DomainClient {
+func NewDomainClient(service api.Interface, options *Options) DomainClient {
 	return internal.NewDomainClient(service, options)
 }
 
